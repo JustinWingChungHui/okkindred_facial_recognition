@@ -23,3 +23,4 @@ class Tag(Base):
     y1 = Column(Float, nullable=False)
     y2 = Column(Float, nullable=False)
     last_updated_date = Column(DateTime, nullable=False)
+    creation_date = Column(DateTime, nullable=False)
