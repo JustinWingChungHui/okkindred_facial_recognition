@@ -25,7 +25,7 @@ Base.metadata.bind = engine
 DBSession = sessionmaker()
 DBSession.bind = engine
 session = DBSession()
-engine.dispose()
+
 
 # Getting queue ids for any queues that need processing
 print('Getting queue data')
@@ -33,9 +33,9 @@ queues = session.query(Queue).all()
 
 resize_tag_queue_id = next(q.id for q in queues if q.name == 'resize_tag')
 
+# Close this connection
 session.close()
-
-
+engine.dispose()
 
 print('resize_tag_queue_id: {}'.format(resize_tag_queue_id))
 
@@ -55,15 +55,21 @@ while True:
 
     print('Number of messages: {}'.format(len(messages)))
 
-    # Process resize_tags messages
-    resize_messages = filter(lambda m: m.queue_id == resize_tag_queue_id , messages)
-    resize_tags(resize_messages, session)
+    # Split up messages to be handled NB filter does weird stuff with object references
+    resize_messages = []
 
-    # Messages processed
     for message in messages:
-        message.processed = True
 
-    session.commit()
+        # resize_tag message
+        if message.queue_id == resize_tag_queue_id:
+            resize_messages.append(message)
+
+        # Other message types
+
+    # Process resize_tags messages
+    if len(resize_messages) > 0:
+        resize_tags(resize_messages, session)
+
 
     # Close connection so we don't run out of connections
     session.close()

@@ -97,7 +97,10 @@ def resize_tags(messages, session):
 
     print('')
     print('Matched: {}'.format(match_tags))
-    if match_tags > 0:
-        session.commit()
+    # Messages processed
+    for message in messages:
+        message.processed = True
+
+    session.commit()
 
     print('========DONE===========')
