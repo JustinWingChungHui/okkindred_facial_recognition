@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Message, Queue
 
-from secrets import DATABASE
+from secrets import DATABASE, MESSAGE_CHECK_INTERVAL_SECONDS
 from resize_tag import resize_tags
 import datetime
 import time
@@ -76,7 +76,7 @@ while True:
     engine.dispose()
 
     # Wait 5 seconds until next queue check
-    time.sleep(5)
+    time.sleep(MESSAGE_CHECK_INTERVAL_SECONDS)
 
 
 
