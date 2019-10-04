@@ -1,55 +1,76 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from models import Base, Message, Queue
 
-from local_models import Base, Record
-from resize_tags import resize_tags
-
+from secrets import DATABASE
+from resize_tag import resize_tags
 import datetime
-import os
-import sys
 import time
 
 
-def check_resize_tags(now):
 
-    print('Loading db data', flush=True)
-    engine = create_engine('sqlite:///local.db')
-    Base.metadata.bind = engine
-    DBSession = sessionmaker(bind=engine)
-    session = DBSession()
+print('Getting queue data')
+print('')
 
-    record = session.query(Record).filter(Record.name=="resize_tags last run date").one()
-    print('Last run date: {}'.format(record.date_record), flush=True)
+print('Connecting to db')
+# mysql+mysqldb://<user>:<password>@<host>/<dbname>
+connection_string = 'mysql+mysqldb://{0}:{1}@{2}/{3}'.format(DATABASE['USER'],
+                                                                DATABASE['PASSWORD'],
+                                                                DATABASE['HOST'],
+                                                                DATABASE['NAME'])
 
-    resize_tags(record.date_record)
-    record.date_record = now
-    record.last_updated_date = datetime.datetime.now()
+engine = create_engine(connection_string)
+connection = engine.connect()
+Base.metadata.bind = engine
+DBSession = sessionmaker()
+DBSession.bind = engine
+session = DBSession()
+engine.dispose()
 
-    print('Updating local db', flush=True)
-    session.commit()
+# Getting queue ids for any queues that need processing
+print('Getting queue data')
+queues = session.query(Queue).all()
+
+resize_tag_queue_id = next(q.id for q in queues if q.name == 'resize_tag')
+
+session.close()
 
 
 
-path = sys.path[0]
-print('Monitoring {}'.format(path), flush=True)
+print('resize_tag_queue_id: {}'.format(resize_tag_queue_id))
 
 while True:
 
-    now = datetime.datetime.now()
-    print('checking for flag(s) {}'.format(now), flush=True)
+    # Get unprocessed messages
+    print('{} Checking queue...'.format(datetime.datetime.now()))
+    engine = create_engine(connection_string, pool_size=2, max_overflow=0)
+    Base.metadata.bind = engine
+    DBSession = sessionmaker()
+    DBSession.bind = engine
+    session = DBSession()
 
-    resize_tags_flag = path + '/resize_tags.flag'
-    if os.path.exists(resize_tags_flag):
-        print('** Detected {} **'.format(resize_tags_flag), flush=True)
+    print('Getting tag_resize messages')
+    messages = session.query(Message). \
+                    filter(Message.processed == False).all()
 
-        check_resize_tags(now)
+    print('Number of messages: {}'.format(len(messages)))
 
-        print('Deleting flag', flush=True)
-        os.remove(resize_tags_flag)
+    # Process resize_tags messages
+    resize_messages = filter(lambda m: m.queue_id == resize_tag_queue_id , messages)
+    resize_tags(resize_messages, session)
 
-        print('')
+    # Messages processed
+    for message in messages:
+        message.processed = True
 
-    time.sleep(30)
+    session.commit()
+
+    # Close connection so we don't run out of connections
+    session.close()
+    engine.dispose()
+
+    # Wait 5 seconds until next queue check
+    time.sleep(5)
 
 
 
