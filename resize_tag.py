@@ -1,45 +1,31 @@
-"""
-Resizes existing tags if using facial recognition
-"""
-
-from models import Base, Image, Tag
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from secrets import DATABASE, MEDIA_ROOT
+from models import Image, Tag
+from secrets import MEDIA_ROOT
 from file_downloader import download_file, get_file_name
 import face_recognition
 
-import os
-import glob
 
+def resize_tags(messages, session):
 
-def resize_tags(min_creation_date):
-    print('#############################################')
-    print('')
+    import os
+    import glob
 
     print('Clearing working directory')
     files = glob.glob('{0}*'.format(MEDIA_ROOT))
     for f in files:
         os.remove(f)
 
-    print('Connecting to db')
-    # mysql+mysqldb://<user>:<password>@<host>/<dbname>
-    connection_string = 'mysql+mysqldb://{0}:{1}@{2}/{3}'.format(DATABASE['USER'],
-                                                                    DATABASE['PASSWORD'],
-                                                                    DATABASE['HOST'],
-                                                                    DATABASE['NAME'])
-
-    engine = create_engine(connection_string)
-    Base.metadata.bind = engine
-    DBSession = sessionmaker()
-    DBSession.bind = engine
-    session = DBSession()
-
     db_images = dict()
     face_locations_by_image_id = dict()
 
+    tag_ids = []
+    for message in messages:
+        if message.integer_data:
+            tag_ids.append(message.integer_data)
+
     print('Get all tags')
-    tags = session.query(Tag).filter(Tag.creation_date > min_creation_date).all()
+    tags = session.query(Tag). \
+            filter(Tag.id.in_(tag_ids)).all()
+
     print('Total number of tags: {}'.format(len(tags)))
 
     match_tags = 0
@@ -111,20 +97,10 @@ def resize_tags(min_creation_date):
 
     print('')
     print('Matched: {}'.format(match_tags))
-    if match_tags > 0:
-        print('Updating database')
-        session.commit()
+    # Messages processed
+    for message in messages:
+        message.processed = True
+
+    session.commit()
 
     print('========DONE===========')
-
-
-
-
-
-
-
-
-
-
-
-
