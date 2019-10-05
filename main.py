@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Message, Queue
 
-from secrets import DATABASE, MESSAGE_CHECK_INTERVAL_SECONDS
+from secrets import DATABASE, MESSAGE_CHECK_INTERVAL_SECONDS, BATCH_SIZE
 from resize_tag import resize_tags
 from image_face_detect import image_face_detect
 import datetime
@@ -53,7 +53,9 @@ while True:
 
     print('Getting tag_resize messages')
     messages = session.query(Message). \
-                    filter(Message.processed == False).all()
+                    filter(Message.processed == False). \
+                    order_by(Message.creation_date.asc()). \
+                    limit(BATCH_SIZE).all()
 
     print('Total number of messages: {}'.format(len(messages)))
 
