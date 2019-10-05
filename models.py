@@ -44,3 +44,17 @@ class Tag(Base):
     y2 = Column(Float, nullable=False)
     last_updated_date = Column(DateTime, nullable=False)
     creation_date = Column(DateTime, nullable=False)
+
+
+class SuggestedTag(Base):
+    __tablename__ = 'suggested_image_tagging_suggestedtag'
+    id = Column(Integer, primary_key=True)
+    image_id = Column(Integer, ForeignKey('gallery_image.id'))
+    person_id = Column(Integer, nullable=True)
+    probability = Column(Float, nullable=True)
+    x1 = Column(Float, nullable=False)
+    x2 = Column(Float, nullable=False)
+    y1 = Column(Float, nullable=False)
+    y2 = Column(Float, nullable=False)
+    last_updated_date = Column(DateTime, nullable=False)
+    creation_date = Column(DateTime, nullable=False)
