@@ -1,5 +1,5 @@
 from models import Image, Tag
-from secrets import MEDIA_ROOT
+from secrets import RESIZE_TAG_TEMP_DIR
 from file_downloader import download_file, get_file_name
 import face_recognition
 
@@ -10,7 +10,7 @@ def resize_tags(messages, session):
     import glob
 
     print('Clearing working directory')
-    files = glob.glob('{0}*'.format(MEDIA_ROOT))
+    files = glob.glob('{0}*'.format(RESIZE_TAG_TEMP_DIR))
     for f in files:
         os.remove(f)
 
@@ -44,7 +44,7 @@ def resize_tags(messages, session):
         if tag.image_id in db_images:
             print('Using cached data')
             db_image = db_images[tag.image_id]
-            local_file = get_file_name(db_image.large_thumbnail)
+            local_file = get_file_name(RESIZE_TAG_TEMP_DIR, db_image.large_thumbnail)
             print(db_image.title)
             print(local_file)
 
@@ -56,7 +56,7 @@ def resize_tags(messages, session):
             db_images[tag.image_id] = db_image
 
             print('Downloading file')
-            local_file = download_file(db_image.large_thumbnail)
+            local_file = download_file(RESIZE_TAG_TEMP_DIR, db_image.large_thumbnail)
             print(db_image.title)
             print(local_file)
 
