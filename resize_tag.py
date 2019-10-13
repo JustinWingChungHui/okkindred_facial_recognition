@@ -101,7 +101,7 @@ def resize_tags(messages, session):
         print(e)
         for message in messages:
             message.error = True
-            message.error_message = str(e)
+            message.error_message = str(e)[:512]
 
     session.commit()
 

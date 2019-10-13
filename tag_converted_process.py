@@ -42,7 +42,7 @@ def tag_converted_process(messages, session):
 
         for message in messages:
             message.error = True
-            message.error_message = str(e)
+            message.error_message = str(e)[:512]
 
     session.commit()
 

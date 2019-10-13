@@ -1,6 +1,6 @@
 import datetime
 import pickle
-from models import Image, SuggestedTag, FaceModel
+from models import Image, SuggestedTag, FaceModel, Person
 from secrets import IMAGE_FACE_DETECT_TEMP_DIR
 from file_downloader import download_file, clear_directory
 import face_recognition
@@ -86,10 +86,16 @@ def image_face_detect(messages, session):
 
                         if len(fit_data_person_ids) > fit_face_indexes[0][0]:
 
-                            print('Adding matched person')
-                            new_suggested_tag.probability = distances[0][0]
-                            new_suggested_tag.person_id = fit_data_person_ids[fit_face_indexes[0][0]]
+                            # Check person exists
+                            person_id = fit_data_person_ids[fit_face_indexes[0][0]]
+                            if session.query(Person).filter(Person.id == person_id).first():
 
+                                print('Adding matched person')
+                                new_suggested_tag.probability = distances[0][0]
+                                new_suggested_tag.person_id = person_id
+
+                            else:
+                                print('Invalid person_id: {}'.format(person_id))
 
                 session.add(new_suggested_tag)
 
@@ -107,10 +113,11 @@ def image_face_detect(messages, session):
 
         for message in messages:
             message.error = True
-            message.error_message = str(e)
+            message.error_message = str(e)[:512]
 
     session.commit()
 
     print('========DONE===========')
+
 
 
